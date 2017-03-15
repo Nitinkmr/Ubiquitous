@@ -22,7 +22,7 @@ global context
 context = None
 
 PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
-PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP'}
+PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP','6':'ROAMING'}
 OPERATOR_MAPPING = {'vodafone':'22',
 					 'airtel':'28',
 					 'aircel':'1',
