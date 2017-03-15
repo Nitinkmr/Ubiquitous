@@ -24,6 +24,32 @@ context = None
 global recharge_plan_details 
 recharge_plan_details = None
 
+PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+def get_plans_clean(response):
+	for plan in response:
+		detail=plan['Detail']
+		if '3G' in detail:
+			PLANS['3G'].append(plan)
+		if '2G' in detail:
+			PLANS['2G'].append(plan)
+		if 'Full Talktime' in detail:
+			PLANS['FULL TALKTIME'].append(plan)
+		if 'Special' in detail:
+			PLANS['SPECIAL'].append(plan)
+		if 'Topup' in detail:
+			PLANS['TOP_UP'].append(plan)
+		if 'roaming' in detail:
+			PLANS['ROAMING'].append(plan)
+
+def get_plan(operator,context):
+	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ operator+ "&cir=1&type=json").read())				
+	if 'recharge_plans' not in context:
+		context['recharge_plans'] = {}
+
+	if operator not in context['recharge_plans']:
+		context['recharge_plans'][operator] = response
+	get_plans_clean(response)
+
 def post_facebook_message(fbid, recevied_message):             
 	
 	#context = request.session.get('context')
@@ -54,34 +80,18 @@ def post_facebook_message(fbid, recevied_message):
 			operator_url = "http://apilayer.net/api/validate?access_key=eed41e844d0c218d041d74594ccb6844&number=" + str(mobile_no) + "&country_code=IN&format=1"
 			operator_data = urllib2.urlopen(operator_url)
 			operator_data = json.loads(operator_data.read())
-			operator = operator_data['carrier']
-			context[fbid]['telecom_operator'] = str(operator)
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "" + str(operator)}})    
-			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-			
-			global recharge_plan_details
-			
-			if recharge_plan_details is None:
-				recharge_plan_details = {}
-			if str(operator) not in recharge_plan_details:
-				
-				res =  urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt=22&cir=1&type=json")
-				res = res.read()
-				res = json.loads(res)
-				
-				recharge_plan_details[str(operator)] = res
-				if 'recharge_plans' not in context:
-					context['recharge_plans'] = {}			
-				if str(operator) not in context['recharge_plans']:
-					context['recharge_plans'] = {}
-				context['recharge_plans'][str(operator)] = res
-			print recharge_plan_details[str(operator)][0]
-
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":recharge_plan_details[str(operator)][0]}})    
-			print response_msg
-			print "resp"	
-			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg[0])
-				
+			if operator_data['valid']:
+				operator = operator_data['carrier']
+				context[fbid]['telecom_operator'] = str(operator)
+				get_plan(str(operator))
+				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":PLANS['3G']}})    
+				print response_msg
+				print "resp"	
+				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg[0])
+			else:
+				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})    
+				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+				context[fbid]['telecom_operator'] = None			
 		
 	except Exception as e:
 		print "error" + str(e)
