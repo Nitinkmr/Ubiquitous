@@ -25,6 +25,7 @@ global recharge_plan_details
 recharge_plan_details = None
 
 PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP'}
 OPERATOR_MAPPING = {'Vodafone India Ltd':'22'}
 def get_plans_clean(response):
 	for plan in response:
@@ -70,13 +71,17 @@ def post_facebook_message(fbid, recevied_message):
 	try:
 		response = conversation.message(workspace_id=workspace_id, message_input={'text':str(recevied_message)},context = context[fbid])
 		context[fbid] = response['context']
-	
+		
+		print context
 		post_message_url = 'https://graph.facebook.com/v2.6/me/messages?access_token=EAAFo3cregLIBAKwqzPX5TZCxBCcLBH2LiOqYMYI5vvZBRhVayhwH78XjsreShgXDNdxA8hAP1LZCDROM3a4fxGSmpXLJVZCbiyujuMq5j1Vfwrr98vDguIYf5z4uDlryjPYh250SegmaILoC6mbWlO6VcUr9z3FDF2UumkIXawZDZD'
 		
 		for mssg in response['output']['text']:
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(mssg)}})    
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-		if 'mobile_no' in response['context']  and response['output']['nodes_visited'][0] == 'check_valid_mobile_no':
+		
+		if 'mobile_no' in response['context']  and response['output']['nodes_visited'][0] == 'save_plan_selected':
+			print "saved"
+			plan_selected = context[fbid]['plan_selected']
 			mobile_no = response['context']['mobile_no']
 			operator_url = "http://apilayer.net/api/validate?access_key=eed41e844d0c218d041d74594ccb6844&number=" + str(mobile_no) + "&country_code=IN&format=1"
 			operator_data = urllib2.urlopen(operator_url)
@@ -85,7 +90,7 @@ def post_facebook_message(fbid, recevied_message):
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
 				get_plan(str(operator),context)
-				for plans in PLANS['3G']:
+				for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
 					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})	
 					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)				
 			else:
