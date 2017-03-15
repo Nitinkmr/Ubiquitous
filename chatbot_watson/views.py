@@ -25,6 +25,7 @@ global recharge_plan_details
 recharge_plan_details = None
 
 PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+OPERATOR_MAPPING = {'Vodafone India Ltd':'22'}
 def get_plans_clean(response):
 	for plan in response:
 		detail=plan['Detail']
@@ -42,7 +43,7 @@ def get_plans_clean(response):
 			PLANS['ROAMING'].append(plan)
 
 def get_plan(operator,context):
-	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ operator+ "&cir=1&type=json").read())				
+	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ OPERATOR_MAPPING[operator] + "&cir=1&type=json").read())				
 	if 'recharge_plans' not in context:
 		context['recharge_plans'] = {}
 
@@ -83,11 +84,12 @@ def post_facebook_message(fbid, recevied_message):
 			if operator_data['valid']:
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
-				get_plan(str(operator))
+				get_plan(str(operator),context)
+				print PLANS
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":PLANS['3G']}})    
 				print response_msg
 				print "resp"	
-				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg[0])
+				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 			else:
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})    
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
