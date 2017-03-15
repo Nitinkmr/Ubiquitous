@@ -85,11 +85,9 @@ def post_facebook_message(fbid, recevied_message):
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
 				get_plan(str(operator),context)
-				print PLANS
-				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":PLANS['3G']}})    
-				print response_msg
-				print "resp"	
-				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+				for plans in PLANS['3G']:
+					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})	
+					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)				
 			else:
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})    
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
