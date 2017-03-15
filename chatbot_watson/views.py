@@ -21,12 +21,29 @@ workspace_id = '9e44a13b-3ed7-4991-9a1e-b17b842a4055'
 global context
 context = None
 
-global recharge_plan_details 
-recharge_plan_details = None
-
 PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
 PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP'}
-OPERATOR_MAPPING = {'Vodafone India Ltd':'22'}
+OPERATOR_MAPPING = {'vodafone':'22',
+					 'airtel':'28',
+					 'aircel':'1',
+					 'bsnl':'3',
+					 #'tata docomo gsm':'17',
+					 #'tata docomo cdma':'18',
+					 #'reliance gsm':'13',
+					 #'reliance cdma':'12',
+					 'mts':'10',
+					 'uninor':'19',
+					 'videocon':'5',
+					 'idea':'8',
+					 'mtnl':'20',}
+					 #'virgin gsm':'17',
+					 #'virgin cdma':'18'}
+
+def get_operator_code(operator):
+	for key in OPERATOR_MAPPING.keys():
+		if  key in operator.lower():
+			return OPERATOR_MAPPING[key]
+
 def get_plans_clean(response):
 	for plan in response:
 		detail=plan['Detail']
@@ -44,7 +61,7 @@ def get_plans_clean(response):
 			PLANS['ROAMING'].append(plan)
 
 def get_plan(operator,context):
-	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ OPERATOR_MAPPING[operator] + "&cir=1&type=json").read())				
+	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ get_operator_code(operator) + "&cir=1&type=json").read())				
 	if 'recharge_plans' not in context:
 		context['recharge_plans'] = {}
 
