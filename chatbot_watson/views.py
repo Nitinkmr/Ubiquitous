@@ -25,9 +25,9 @@ PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TO
 OPERATOR_PLANS_MAPPING = {}
 
 class Plan_Object():
-
-	PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+	
 	def __init__(self,name):
+		PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
 		self.name = name
 		self.PLANS = PLANS
 
@@ -70,16 +70,15 @@ def get_plans_clean(response,PLANS):
 			PLANS['TOP_UP'].append(plan)
 		if 'roaming' in detail:
 			PLANS['ROAMING'].append(plan)
+	return PLANS
 
 def get_plan(operator,context):
-	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ get_operator_code(operator) + "&cir=1&type=json").read())
-	if 'recharge_plans' not in context:
-		context['recharge_plans'] = {}
-
-	if operator not in context['recharge_plans']:
-		context['recharge_plans'][operator] = response
-	plan_object = OPERATOR_PLANS_MAPPING.get(operator,default=Plan_Object(operator))
+	if operator in OPERATOR_PLANS_MAPPING.keys():
+		return OPERATOR_PLANS_MAPPING[operator].PLANS
+	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ get_operator_code(operator) + "&cir=1&type=json").read())	
+	plan_object = OPERATOR_PLANS_MAPPING.get(operator,Plan_Object(operator))	
 	get_plans_clean(response,plan_object.PLANS)
+	OPERATOR_PLANS_MAPPING[operator]=plan_object
 	return plan_object.PLANS
 
 def post_facebook_message(fbid, recevied_message):
