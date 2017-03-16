@@ -112,20 +112,34 @@ def post_facebook_message(fbid, recevied_message):
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
 				PLANS = get_plan(str(operator),context)
+				plan_no = 0
 				for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
-					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})
+					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(plan_no+1) + plans['Detail']}})
 					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+					plan_no = plan_no + 1
+				
+				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"select a plan from the above shown plans"}})
+				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+				
 			else:
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 				context[fbid]['telecom_operator'] = None
 		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
+			
 			PLANS = get_plan(context[fbid]['telecom_operator'],context)
+			print "your operator is " + str(context[fbid]['telecom_operator'])
 			plan_selected = context[fbid]['plan_selected']
 			final_plan_selected = context[fbid]['final_plan_selected']
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})
+			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected) -1]['Detail']  }})
 			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 
+		if response['output']['nodes_visited'][0] == 'reacharging':
+			context[fbid]['telecom_operator'] = ''
+			context[fbid]['plan_selected'] = ''
+			context[fbid]['final_plan_selected'] = ''
+			
+			
 	except Exception as e:
 		print "error" + str(e)
 
