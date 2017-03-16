@@ -21,8 +21,20 @@ workspace_id = '9e44a13b-3ed7-4991-9a1e-b17b842a4055'
 global context
 context = None
 
-PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+
 PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP','6':'ROAMING'}
+OPERATOR_PLANS_MAPPING = {}
+
+class Plan_Object():
+
+	PLANS = {'3G':[],'2G':[],'FULL TALKTIME':[],'SPECIAL':[],'ROAMING':[],'TOP_UP':[]}
+	def __init__(self,name):
+		self.name = name
+		self.PLANS = PLANS
+
+	def __str__(self):
+		print self.name
+
 OPERATOR_MAPPING = {'vodafone':'22',
 					 'airtel':'28',
 					 'aircel':'1',
@@ -44,7 +56,7 @@ def get_operator_code(operator):
 		if  key in operator.lower():
 			return OPERATOR_MAPPING[key]
 
-def get_plans_clean(response):
+def get_plans_clean(response,PLANS):
 	for plan in response:
 		detail=plan['Detail']
 		if '3G' in detail:
@@ -61,41 +73,43 @@ def get_plans_clean(response):
 			PLANS['ROAMING'].append(plan)
 
 def get_plan(operator,context):
-	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ get_operator_code(operator) + "&cir=1&type=json").read())				
+	response =  json.loads(urllib2.urlopen("https://joloapi.com/api/findplan.php?userid=nitinkmr&key=469150899121702&opt="+ get_operator_code(operator) + "&cir=1&type=json").read())
 	if 'recharge_plans' not in context:
 		context['recharge_plans'] = {}
 
 	if operator not in context['recharge_plans']:
 		context['recharge_plans'][operator] = response
-	get_plans_clean(response)
+	plan_object = OPERATOR_PLANS_MAPPING.get(operator,default=Plan_Object(operator))
+	get_plans_clean(response,plan_object.PLANS)
+	return plan_object.PLANS
 
-def post_facebook_message(fbid, recevied_message):             
-	
+def post_facebook_message(fbid, recevied_message):
+
 	#context = request.session.get('context')
 	print fbid
 	global context
-	# when first user comes 
+	# when first user comes
 	if context is None:
 		context = {}
 		context[fbid] = None
-	
 
 
-	# if a new user comes in 
+
+	# if a new user comes in
 	if fbid not in context:
 		context[fbid] = {}
 
 	try:
 		response = conversation.message(workspace_id=workspace_id, message_input={'text':str(recevied_message)},context = context[fbid])
 		context[fbid] = response['context']
-		
+
 		print context
 		post_message_url = 'https://graph.facebook.com/v2.6/me/messages?access_token=EAAFo3cregLIBAKwqzPX5TZCxBCcLBH2LiOqYMYI5vvZBRhVayhwH78XjsreShgXDNdxA8hAP1LZCDROM3a4fxGSmpXLJVZCbiyujuMq5j1Vfwrr98vDguIYf5z4uDlryjPYh250SegmaILoC6mbWlO6VcUr9z3FDF2UumkIXawZDZD'
-		
+
 		for mssg in response['output']['text']:
-				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(mssg)}})    
+				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(mssg)}})
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-		
+
 		if 'mobile_no' in response['context']  and response['output']['nodes_visited'][0] == 'save_plan_selected':
 			print "saved"
 			plan_selected = context[fbid]['plan_selected']
@@ -106,14 +120,14 @@ def post_facebook_message(fbid, recevied_message):
 			if operator_data['valid']:
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
-				get_plan(str(operator),context)
+				PLANS = get_plan(str(operator),context)
 				for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
-					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})	
-					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)				
+					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})
+					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 			else:
-				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})    
+				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-				context[fbid]['telecom_operator'] = None			
+				context[fbid]['telecom_operator'] = None
 		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
 			print "printing final plans"
 			plan_selected = context[fbid]['plan_selected']
@@ -121,24 +135,24 @@ def post_facebook_message(fbid, recevied_message):
 			print plan_selected
 			print final_plan_selected
 			print PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})	
-			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)				
-	
+			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})
+			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+
 	except Exception as e:
 		print "error" + str(e)
 
 
 class bot(generic.View):
-	
+
 	def get(self, request, *args, **kwargs):
-	       
+
 
 	      #  print "get request"
 	        if self.request.GET['hub.verify_token'] == '123456':
 	            return HttpResponse(self.request.GET['hub.challenge'])
 	        else:
 	            return HttpResponse('Error, invalid token')
-	
+
 	@method_decorator(csrf_exempt)
     	def dispatch(self, request, *args, **kwargs):
         	#print "dispatch "
@@ -154,9 +168,9 @@ class bot(generic.View):
 	        for entry in incoming_message['entry']:
 	            for message in entry['messaging']:
 	                # Check to make sure the received call is a message call
-	                # This might be delivery, optin, postback for other events 
+	                # This might be delivery, optin, postback for other events
 	                if 'message' in message:
 		                # Print the message to the terminal
-		       #         pprint(message)     
-		                post_facebook_message(message['sender']['id'], message['message']['text'])   
+		       #         pprint(message)
+		                post_facebook_message(message['sender']['id'], message['message']['text'])
 	        return HttpResponse()
