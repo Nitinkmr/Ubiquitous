@@ -81,6 +81,39 @@ def get_plan(operator,context):
 	OPERATOR_PLANS_MAPPING[operator]=plan_object
 	return plan_object.PLANS
 
+def show_plans(context,response):
+	plan_selected = context[fbid]['plan_selected']
+	mobile_no = response['context']['mobile_no']
+	operator_url = "http://apilayer.net/api/validate?access_key=eed41e844d0c218d041d74594ccb6844&number=" + str(mobile_no) + "&country_code=IN&format=1"
+	operator_data = urllib2.urlopen(operator_url)
+	operator_data = json.loads(operator_data.read())
+	if operator_data['valid']:
+		operator = operator_data['carrier']
+		context[fbid]['telecom_operator'] = str(operator)
+		PLANS = get_plan(str(operator),context)
+		plan_no = 0
+		for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
+			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(plan_no+1) + plans['Detail']}})
+			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+			plan_no = plan_no + 1
+				
+		response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"select a plan from the above shown plans"}})
+		status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+				
+	else:
+		response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})
+		status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+		context[fbid]['telecom_operator'] = None
+
+def handle_recharge_type_choice(context):
+	PLANS = get_plan(context[fbid]['telecom_operator'],context)
+	print "your operator is " + str(context[fbid]['telecom_operator'])
+	plan_selected = context[fbid]['plan_selected']
+	final_plan_selected = context[fbid]['final_plan_selected']
+	response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected) -1]['Detail']  }})
+	status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+
+
 def post_facebook_message(fbid, recevied_message):
 
 	global context
@@ -103,36 +136,9 @@ def post_facebook_message(fbid, recevied_message):
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 
 		if 'mobile_no' in response['context']  and response['output']['nodes_visited'][0] == 'save_plan_selected':
-			plan_selected = context[fbid]['plan_selected']
-			mobile_no = response['context']['mobile_no']
-			operator_url = "http://apilayer.net/api/validate?access_key=eed41e844d0c218d041d74594ccb6844&number=" + str(mobile_no) + "&country_code=IN&format=1"
-			operator_data = urllib2.urlopen(operator_url)
-			operator_data = json.loads(operator_data.read())
-			if operator_data['valid']:
-				operator = operator_data['carrier']
-				context[fbid]['telecom_operator'] = str(operator)
-				PLANS = get_plan(str(operator),context)
-				plan_no = 0
-				for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
-					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":str(plan_no+1) + plans['Detail']}})
-					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-					plan_no = plan_no + 1
-				
-				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"select a plan from the above shown plans"}})
-				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-				
-			else:
-				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})
-				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
-				context[fbid]['telecom_operator'] = None
+			show_plans(context,response)
 		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
-			
-			PLANS = get_plan(context[fbid]['telecom_operator'],context)
-			print "your operator is " + str(context[fbid]['telecom_operator'])
-			plan_selected = context[fbid]['plan_selected']
-			final_plan_selected = context[fbid]['final_plan_selected']
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected) -1]['Detail']  }})
-			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+			handle_recharge_type_choice(context)
 
 		if response['output']['nodes_visited'][0] == 'reacharging':
 			context[fbid]['telecom_operator'] = ''
