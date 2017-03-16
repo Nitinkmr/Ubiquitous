@@ -20,7 +20,6 @@ workspace_id = '9e44a13b-3ed7-4991-9a1e-b17b842a4055'
 global context
 context = None
 
-PLANS_G = {}
 PLAN_TYPE_MAPPING = {'1':'3G','2':'2G','3':'FULL TALKTIME','4':'SPECIAL','5':'TOP_UP','6':'ROAMING'}
 OPERATOR_PLANS_MAPPING = {}
 
@@ -112,8 +111,8 @@ def post_facebook_message(fbid, recevied_message):
 			if operator_data['valid']:
 				operator = operator_data['carrier']
 				context[fbid]['telecom_operator'] = str(operator)
-				PLANS_G = get_plan(str(operator),context)
-				for plans in PLANS_G[PLAN_TYPE_MAPPING[plan_selected]]:
+				PLANS = get_plan(str(operator),context)
+				for plans in PLANS[PLAN_TYPE_MAPPING[plan_selected]]:
 					response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":plans['Detail']}})
 					status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 			else:
@@ -121,9 +120,10 @@ def post_facebook_message(fbid, recevied_message):
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 				context[fbid]['telecom_operator'] = None
 		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
+			PLANS = get_plan(context[fbid]['telecom_operator'],context)
 			plan_selected = context[fbid]['plan_selected']
 			final_plan_selected = context[fbid]['final_plan_selected']
-			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS_G[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})
+			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})
 			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 
 	except Exception as e:
