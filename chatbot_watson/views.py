@@ -1,4 +1,3 @@
-## bank DB on https://api.myjson.com/bins/hvyw7
 import json, requests, random, re
 from pprint import pprint
 import urllib2
@@ -85,17 +84,11 @@ def get_plan(operator,context):
 
 def post_facebook_message(fbid, recevied_message):
 
-	#context = request.session.get('context')
-	print fbid
 	global context
-	# when first user comes
 	if context is None:
 		context = {}
 		context[fbid] = None
 
-
-
-	# if a new user comes in
 	if fbid not in context:
 		context[fbid] = {}
 
@@ -111,7 +104,6 @@ def post_facebook_message(fbid, recevied_message):
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 
 		if 'mobile_no' in response['context']  and response['output']['nodes_visited'][0] == 'save_plan_selected':
-			print "saved"
 			plan_selected = context[fbid]['plan_selected']
 			mobile_no = response['context']['mobile_no']
 			operator_url = "http://apilayer.net/api/validate?access_key=eed41e844d0c218d041d74594ccb6844&number=" + str(mobile_no) + "&country_code=IN&format=1"
@@ -129,12 +121,8 @@ def post_facebook_message(fbid, recevied_message):
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 				context[fbid]['telecom_operator'] = None
 		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
-			print "printing final plans"
 			plan_selected = context[fbid]['plan_selected']
 			final_plan_selected = context[fbid]['final_plan_selected']
-			print plan_selected
-			print final_plan_selected
-			print PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]
 			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})
 			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 
@@ -146,8 +134,6 @@ class bot(generic.View):
 
 	def get(self, request, *args, **kwargs):
 
-
-	      #  print "get request"
 	        if self.request.GET['hub.verify_token'] == '123456':
 	            return HttpResponse(self.request.GET['hub.challenge'])
 	        else:
@@ -170,7 +156,5 @@ class bot(generic.View):
 	                # Check to make sure the received call is a message call
 	                # This might be delivery, optin, postback for other events
 	                if 'message' in message:
-		                # Print the message to the terminal
-		       #         pprint(message)
 		                post_facebook_message(message['sender']['id'], message['message']['text'])
 	        return HttpResponse()
