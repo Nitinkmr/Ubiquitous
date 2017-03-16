@@ -114,7 +114,16 @@ def post_facebook_message(fbid, recevied_message):
 				response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text": "Invalid Mobile Numbers"}})    
 				status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
 				context[fbid]['telecom_operator'] = None			
-		
+		elif response['output']['nodes_visited'][0] == 'save_recharge_plan_selected':
+			print "printing final plans"
+			plan_selected = context[fbid]['plan_selected']
+			final_plan_selected = context[fbid]['final_plan_selected']
+			print plan_selected
+			print final_plan_selected
+			print PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]
+			response_msg = json.dumps({"recipient":{"id":fbid},"message":{"text":"You have selected " + PLANS[PLAN_TYPE_MAPPING[plan_selected]][int(final_plan_selected)]['Detail']  }})	
+			status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)				
+	
 	except Exception as e:
 		print "error" + str(e)
 
